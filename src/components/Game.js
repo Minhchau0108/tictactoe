@@ -4,106 +4,87 @@ import Board from './Board';
 
 // Step 0
 // Draw the tree of components
+// SquareButton --> Board --> Game ---> APP 
 
 // STEP 6.6 - Rocket: History of moves
 // Import useLocalStorageState from ../utils/useLocalStorageState
 // Appy the custom hook to persist the game across browser refresh
 
 function getNextValue(squares) {
-	// STEP 3
-	// Count how many X and O in squares.
-	// If they are equal the nextValue must be X, otherwise O
+	const X_Count = squares.filter(x => x === "X").length;
+	const O_Count = squares.filter(x => x === "O").length;
+	if(X_Count === O_Count) return "X";
+	return "O";
 }
 
 function getWinner(squares) {
-	// STEP 4
-	// The winner is who has the three squares in a row, a column, or a diagonal
-	// The index of those three squares are one of these options:
-	// [0, 1, 2] : the first row
-	// [3, 4, 5] : the second row
-	// [6, 7, 8] : the third row
-	// [0, 3, 6] : the first column
-	// [1, 4, 7] : the second column
-	// [2, 5, 8] : the third column
-	// [0, 4, 8] : the top-left to bottom-right diagonal
-	// [2, 4, 6] : the top-right to bottom-left diagonal
+	const lines = [
+		[0, 1, 2],
+		[3, 4, 5],
+		[6, 7, 8],
+		[0, 3, 6],
+		[1, 4, 7],
+		[2, 5, 8],
+		[0, 4, 8],
+		[2, 4, 6],
+	  ];
+	for(let i = 0; i < lines.length; i++){
+		const [a,b,c] = lines[i];
+		if(squares[a] && squares[a] === squares[b] && squares[a] === squares[c]){
+			return squares[a];
+		}
+	}
+	return null;
 }
 
 function getStatus(squares, winner, nextValue) {
-	// STEP 5
-	// Do we have a winner? -> `Winner: ${winner}`
-	// If there are no free square to play, or the sum of null in squares equals 0 -> Draw game
-	// Otherwise -> `Next player: ${nextValue}`
+	if(winner !== null) {
+		return (<p>Winner: {winner}</p>);
+	}
+	if(squares.filter(x => x === null).length === 0){
+		return (<p>Draw Game</p>);
+	}
+	return (<p>Next player: {nextValue}</p>);
 }
 
 const Game = () => {
-	// STEP 6.1 - Rocket: History of moves
-	// Comment out this line below
-	const [squares, setSquares] = useState(Array(9).fill(null));
+	const [history, setHistory] = useState([Array(9).fill(null)]);
+	const [currentStep, setCurrentStep] = useState(0);
+	const currentSquares = history[currentStep];
 
-	// STEP 6.2 - Rocket: History of moves
-	// States needed for saving history of moves
-	// const [history, setHistory] = useState([Array(9).fill(null)]);
-	// const [currentStep, setCurrentStep] = useState(0);
-	// const currentSquares = history[currentStep];
-
-	// STEP 6.3 - Rocket: History of moves
-	// Replace squares with currentSquares
-
-	// This state determines the next value is X or O?
-	// - nextValue ('X' or 'O')
-	const nextValue = getNextValue(squares);
-	// This state determines who is the winner
-	// - winner ('X', 'O', or null)
-	const winner = getWinner(squares);
-	// This state determines the status showing who is on the turn
-	// - status (`Winner: ${winner}`, `Draw`, or `Next player: ${nextValue}`)
-	const status = getStatus(squares, winner, nextValue);
+	const nextValue = getNextValue(currentSquares)
+	const winner = getWinner(currentSquares);
+	const status = getStatus(currentSquares, winner, nextValue);
 
 	const clickSquare = (index) => {
-		// STEP 1
-		// First, if there's already winner or there's already a value at the
-		// given square index, then return
-
-		// It's typically a bad idea to mutate or directly change state in React.
-		// Doing so can lead to subtle bugs that can easily slip into production.
-		// - Make a copy of the squares array. Hint `[...squares]` will do it!)
-
-		// - Set the value of the square that was selected. Hint `squaresCopy[index] = nextValue`
-
-		// - set the squares to your copy
-
-		const squaresCopy = [...squares];
-		squaresCopy[index] = index;
-		setSquares(squaresCopy);
+		if(winner !== null) { return;}
+		const historyCopy = history.slice(0, currentStep + 1);
+		const squares = [...currentSquares];
+		squares[index] = nextValue;		
+		setHistory([...historyCopy, squares])
+		setCurrentStep(historyCopy.length);
 	};
 
 	const restartGame = () => {
-		// STEP 2
-		// Restart the game is basically set the state of the app back to the initial value
-		// -------
-		// STEP 6.4 - Rocket: History of moves
-		// Restart the game by reset `history` and `currentStep`
+		setHistory([Array(9).fill(null)])
+		setCurrentStep(0)
 	};
-
-	// STEP 6.5 - Rocket: History of moves
-	// Create the list of moves in history
-	// const moves = history.___((squares, step) => {
-	//   const description = step ? ___ : ___;
-	//   const isCurrentStep = step === ___;
-	//   return (
-	//     <li key={step}>
-	//       <Button
-	//         variant="outline-success"
-	//         size="sm"
-	//         disabled={isCurrentStep}
-	//         onClick={() => setCurrentStep(step)}
-	//       >
-	//         {description} {isCurrentStep ? "(current)" : null}
-	//       </Button>
-	//     </li>
-	//   );
-	// });
+	const moves = history.map((squares, step) => {
+	  const description = step ? `Go to move # ${step}`: `Go to game start`;
+	  const isCurrentStep = step === history.length;
+	  return (
+	    <li key={step}>
+	      <Button
+	        variant="outline-success"
+	        size="sm"
+	        disabled={isCurrentStep}
+	        onClick={() => setCurrentStep(step)}
+	      >
+	        {description} {isCurrentStep ? "(current)" : null}
+	      </Button>
+	    </li>
+	  );
+	});
 
 	return (
 		<Container>
@@ -116,7 +97,7 @@ const Game = () => {
 			</Row>
 			<Row>
 				<Col md={6}>
-					<Board squares={squares} onClick={clickSquare} />
+					<Board squares={history[currentStep]} onClick={clickSquare} />
 					<div>
 						<strong>Winner: {winner}</strong>
 					</div>
@@ -125,9 +106,7 @@ const Game = () => {
 					<div>
 						<strong>{status}</strong>
 					</div>
-					{/* STEP 6.6 - Rocket: History of moves */}
-					{/* The list of moves */}
-					{/* <ol>{moves}</ol> */}
+					 <ol>{moves}</ol> 
 				</Col>
 			</Row>
 		</Container>

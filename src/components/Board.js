@@ -1,6 +1,7 @@
 import React from "react";
 
 const Board = ({ squares, onClick }) => {
+  console.log("render Board");
   return (
     <div className="board">
       {squares.map((square, index) => (
